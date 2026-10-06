@@ -1,145 +1,278 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hintaks Bingo</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
 <style>
-body{font-family:Arial;text-align:center;background:#f5f5f5;margin:0;padding:15px}
-h1{color:#222}
-#num{font-size:55px;font-weight:bold;margin:15px}
-button{padding:12px 20px;margin:5px;border:0;border-radius:8px;background:#222;color:white;font-size:16px}
-table{margin:20px auto;border-collapse:collapse}
-th,td{width:55px;height:55px;border:2px solid #333;text-align:center;font-weight:bold}
-th{background:#ddd}
-td{background:white;cursor:pointer}
-td.called{background:#bde7ff}
-td.marked{background:#7ee081}
-.free{background:#ffd966}
-#called{max-width:500px;margin:auto;line-height:1.8}
+body{
+  font-family:Arial,sans-serif;
+  text-align:center;
+  background:#f5f5f5;
+  margin:0;
+  padding:20px;
+}
+
+h1{
+  color:#222;
+}
+
+#number{
+  font-size:55px;
+  font-weight:bold;
+  margin:20px;
+  color:#0088cc;
+}
+
+button{
+  padding:14px 25px;
+  margin:8px;
+  border:none;
+  border-radius:10px;
+  background:#0088cc;
+  color:white;
+  font-size:18px;
+}
+
+button:active{
+  transform:scale(.95);
+}
+
+table{
+  margin:20px auto;
+  border-collapse:collapse;
+}
+
+th,td{
+  width:55px;
+  height:55px;
+  border:2px solid #333;
+  font-size:20px;
+  font-weight:bold;
+}
+
+th{
+  background:#ddd;
+}
+
+td{
+  background:white;
+  cursor:pointer;
+}
+
+td.marked{
+  background:#7ee081;
+}
+
+#message{
+  font-size:20px;
+  font-weight:bold;
+  margin:15px;
+}
 </style>
 </head>
+
 <body>
 
 <h1>🎱 Hintaks Bingo</h1>
-<div id="num">--</div>
 
-<button onclick="draw()">Draw Number</button>
-<button onclick="newGame()">New Card</button>
+<div id="number">--</div>
+
+<button onclick="newNumber()">🎲 ቁጥር አውጣ</button>
+<button onclick="newGame()">🔄 አዲስ ጨዋታ</button>
 
 <table>
-<thead><tr>
-<th>B</th><th>I</th><th>N</th><th>G</th><th>O</th>
-</tr></thead>
+<thead>
+<tr>
+<th>B</th>
+<th>I</th>
+<th>N</th>
+<th>G</th>
+<th>O</th>
+</tr>
+</thead>
+
 <tbody id="card"></tbody>
 </table>
 
-<h3>Called Numbers</h3>
-<div id="called">None</div>
-<h2 id="win"></h2>
+<div id="message"></div>
 
 <script>
-let numbers=[],called=[],card=[];
 
-function makeNumbers(){
-  numbers=[];
-  for(let i=1;i<=75;i++) numbers.push(i);
-}
+let numbers=[];
+let card=[];
 
-function newGame(){
-  makeNumbers();
-  called=[];
-  document.getElementById("num").textContent="--";
-  document.getElementById("called").textContent="None";
-  document.getElementById("win").textContent="";
-  createCard();
+function telegramStart(){
+  if(window.Telegram && Telegram.WebApp){
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+  }
 }
 
 function createCard(){
+
   card=[];
-  for(let c=0;c<5;c++){
-    let start=c*15+1;
-    let arr=[];
-    while(arr.length<5){
-      let n=start+Math.floor(Math.random()*15);
-      if(!arr.includes(n)) arr.push(n);
+
+  for(let r=0;r<5;r++){
+
+    let row=[];
+
+    for(let c=0;c<5;c++){
+
+      let min=c*15+1;
+      let max=min+14;
+
+      let n;
+
+      do{
+        n=Math.floor(Math.random()*(max-min+1))+min;
+      }while(row.includes(n));
+
+      row.push(n);
     }
-    card.push(arr);
+
+    card.push(row);
   }
 
+  card[2][2]="FREE";
+
+  drawCard();
+}
+
+function drawCard(){
+
   let html="";
+
   for(let r=0;r<5;r++){
+
     html+="<tr>";
+
     for(let c=0;c<5;c++){
-      if(r===2 && c===2){
-        html+='<td class="free marked">FREE</td>';
+
+      let value=card[r][c];
+
+      if(value==="FREE"){
+        html+='<td class="marked">FREE</td>';
       }else{
-        html+=`<td onclick="mark(this,${card[c][r]})">${card[c][r]}</td>`;
+        html+='<td onclick="markCell(this)">'+value+'</td>';
       }
+
     }
+
     html+="</tr>";
   }
+
   document.getElementById("card").innerHTML=html;
 }
 
-function draw(){
-  if(numbers.length===0){
-    document.getElementById("num").textContent="DONE";
-    return;
-  }
-  let i=Math.floor(Math.random()*numbers.length);
-  let n=numbers.splice(i,1)[0];
-  called.push(n);
-  document.getElementById("num").textContent=n;
-  document.getElementById("called").textContent=called.join(", ");
+function markCell(cell){
+
+  cell.classList.toggle("marked");
+
+  checkBingo();
 }
 
-function mark(cell,n){
-  if(called.includes(n)){
-    cell.classList.toggle("marked");
-    checkBingo();
+function newNumber(){
+
+  if(numbers.length>=75){
+    document.getElementById("message").innerText=
+      "ሁሉም ቁጥሮች ተጠቅመዋል!";
+    return;
   }
+
+  let n;
+
+  do{
+    n=Math.floor(Math.random()*75)+1;
+  }while(numbers.includes(n));
+
+  numbers.push(n);
+
+  document.getElementById("number").innerText=n;
+
+  checkBingo();
 }
 
 function checkBingo(){
-  let cells=[...document.querySelectorAll("#card td")];
-  let win=false;
+
+  let cells=document.querySelectorAll("#card td");
+
+  let marked=[];
+
+  cells.forEach(cell=>{
+    marked.push(cell.classList.contains("marked"));
+  });
 
   for(let r=0;r<5;r++){
-    let ok=true;
+
+    let win=true;
+
     for(let c=0;c<5;c++){
-      if(!cells[r*5+c].classList.contains("marked")) ok=false;
+      if(!marked[r*5+c]) win=false;
     }
-    if(ok) win=true;
+
+    if(win){
+      document.getElementById("message").innerText=
+        "🎉 BINGO! 🎉";
+      return;
+    }
   }
 
   for(let c=0;c<5;c++){
-    let ok=true;
+
+    let win=true;
+
     for(let r=0;r<5;r++){
-      if(!cells[r*5+c].classList.contains("marked")) ok=false;
+      if(!marked[r*5+c]) win=false;
     }
-    if(ok) win=true;
+
+    if(win){
+      document.getElementById("message").innerText=
+        "🎉 BINGO! 🎉";
+      return;
+    }
   }
 
-  if(
-    cells[0].classList.contains("marked") &&
-    cells[6].classList.contains("marked") &&
-    cells[12].classList.contains("marked") &&
-    cells[18].classList.contains("marked") &&
-    cells[24].classList.contains("marked")
-  ) win=true;
+  let win=true;
 
-  if(
-    cells[4].classList.contains("marked") &&
-    cells[8].classList.contains("marked") &&
-    cells[12].classList.contains("marked") &&
-    cells[16].classList.contains("marked") &&
-    cells[20].classList.contains("marked")
-  ) win=true;
+  for(let i=0;i<5;i++){
+    if(!marked[i*5+i]) win=false;
+  }
 
-  if(win) document.getElementById("win").textContent="🎉 BINGO! 🎉";
+  if(win){
+    document.getElementById("message").innerText=
+      "🎉 BINGO! 🎉";
+    return;
+  }
+
+  win=true;
+
+  for(let i=0;i<5;i++){
+    if(!marked[i*5+(4-i)]) win=false;
+  }
+
+  if(win){
+    document.getElementById("message").innerText=
+      "🎉 BINGO! 🎉";
+  }
 }
 
-newGame();
+function newGame(){
+
+  numbers=[];
+  document.getElementById("number").innerText="--";
+  document.getElementById("message").innerText="";
+
+  createCard();
+}
+
+telegramStart();
+createCard();
+
 </script>
+
 </body>
 </html>
