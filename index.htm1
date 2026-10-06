@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hintaks Bingo</title>
+<style>
+body{font-family:Arial;text-align:center;background:#f5f5f5;margin:0;padding:15px}
+h1{color:#222}
+#num{font-size:55px;font-weight:bold;margin:15px}
+button{padding:12px 20px;margin:5px;border:0;border-radius:8px;background:#222;color:white;font-size:16px}
+table{margin:20px auto;border-collapse:collapse}
+th,td{width:55px;height:55px;border:2px solid #333;text-align:center;font-weight:bold}
+th{background:#ddd}
+td{background:white;cursor:pointer}
+td.called{background:#bde7ff}
+td.marked{background:#7ee081}
+.free{background:#ffd966}
+#called{max-width:500px;margin:auto;line-height:1.8}
+</style>
+</head>
+<body>
+
+<h1>🎱 Hintaks Bingo</h1>
+<div id="num">--</div>
+
+<button onclick="draw()">Draw Number</button>
+<button onclick="newGame()">New Card</button>
+
+<table>
+<thead><tr>
+<th>B</th><th>I</th><th>N</th><th>G</th><th>O</th>
+</tr></thead>
+<tbody id="card"></tbody>
+</table>
+
+<h3>Called Numbers</h3>
+<div id="called">None</div>
+<h2 id="win"></h2>
+
+<script>
+let numbers=[],called=[],card=[];
+
+function makeNumbers(){
+  numbers=[];
+  for(let i=1;i<=75;i++) numbers.push(i);
+}
+
+function newGame(){
+  makeNumbers();
+  called=[];
+  document.getElementById("num").textContent="--";
+  document.getElementById("called").textContent="None";
+  document.getElementById("win").textContent="";
+  createCard();
+}
+
+function createCard(){
+  card=[];
+  for(let c=0;c<5;c++){
+    let start=c*15+1;
+    let arr=[];
+    while(arr.length<5){
+      let n=start+Math.floor(Math.random()*15);
+      if(!arr.includes(n)) arr.push(n);
+    }
+    card.push(arr);
+  }
+
+  let html="";
+  for(let r=0;r<5;r++){
+    html+="<tr>";
+    for(let c=0;c<5;c++){
+      if(r===2 && c===2){
+        html+='<td class="free marked">FREE</td>';
+      }else{
+        html+=`<td onclick="mark(this,${card[c][r]})">${card[c][r]}</td>`;
+      }
+    }
+    html+="</tr>";
+  }
+  document.getElementById("card").innerHTML=html;
+}
+
+function draw(){
+  if(numbers.length===0){
+    document.getElementById("num").textContent="DONE";
+    return;
+  }
+  let i=Math.floor(Math.random()*numbers.length);
+  let n=numbers.splice(i,1)[0];
+  called.push(n);
+  document.getElementById("num").textContent=n;
+  document.getElementById("called").textContent=called.join(", ");
+}
+
+function mark(cell,n){
+  if(called.includes(n)){
+    cell.classList.toggle("marked");
+    checkBingo();
+  }
+}
+
+function checkBingo(){
+  let cells=[...document.querySelectorAll("#card td")];
+  let win=false;
+
+  for(let r=0;r<5;r++){
+    let ok=true;
+    for(let c=0;c<5;c++){
+      if(!cells[r*5+c].classList.contains("marked")) ok=false;
+    }
+    if(ok) win=true;
+  }
+
+  for(let c=0;c<5;c++){
+    let ok=true;
+    for(let r=0;r<5;r++){
+      if(!cells[r*5+c].classList.contains("marked")) ok=false;
+    }
+    if(ok) win=true;
+  }
+
+  if(
+    cells[0].classList.contains("marked") &&
+    cells[6].classList.contains("marked") &&
+    cells[12].classList.contains("marked") &&
+    cells[18].classList.contains("marked") &&
+    cells[24].classList.contains("marked")
+  ) win=true;
+
+  if(
+    cells[4].classList.contains("marked") &&
+    cells[8].classList.contains("marked") &&
+    cells[12].classList.contains("marked") &&
+    cells[16].classList.contains("marked") &&
+    cells[20].classList.contains("marked")
+  ) win=true;
+
+  if(win) document.getElementById("win").textContent="🎉 BINGO! 🎉";
+}
+
+newGame();
+</script>
+</body>
+</html>
